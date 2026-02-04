@@ -231,9 +231,18 @@ def compute_recommendations(user_skills, top_n=3):
 
         # Pull resources for missing skills
         next_steps = []
+        resource_map = {}
+        if missing:
+            placeholders = ",".join(["?"] * len(missing))
+            cur.execute(
+                f"SELECT skill, title, url FROM resources WHERE skill IN ({placeholders})",
+                missing
+            )
+        for row in cur.fetchall():
+            resource_map[row["skill"]] = {"title": row["title"], "url": row["url"]}
+        
         for ms in missing:
-            cur.execute("SELECT title, url FROM resources WHERE skill = ?", (ms,))
-            rr = cur.fetchone()
+            rr = resource_map.get(ms)
             if rr:
                 next_steps.append({"skill": ms, "title": rr["title"], "url": rr["url"]})
             else:
