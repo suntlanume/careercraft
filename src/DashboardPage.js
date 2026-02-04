@@ -27,6 +27,10 @@ export default function DashboardPage({ user, onLogout }) {
       setSkillInput("");
       await loadSkills();
     } catch (err) {
+      if (err?.response?.status === 409){
+        setMessage("That skill is already saved to your profile.");
+        return;
+      }
       const msg = err?.response?.data?.error || "Add skill failed";
       setMessage(msg);
     }
@@ -114,7 +118,10 @@ export default function DashboardPage({ user, onLogout }) {
                   <ul>
                     {r.next_steps.slice(0, 3).map((ns) => (
                       <li key={ns.skill}>
-                        {ns.skill}: {ns.title} ({ns.url})
+                        {ns.skill}:{" "}                       
+                         <a href={ns.url} target="_blank" rel="noreferrer">
+                          {ns.title}
+                        </a>
                       </li>
                     ))}
                   </ul>

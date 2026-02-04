@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import sqlite3
 from pathlib import Path
+import re
+from werkzeug.security import generate_password_hash, check_password_hash
 
 APP_DIR = Path(__file__).resolve().parent
 DB_PATH = APP_DIR / "careercraft.db"
@@ -18,6 +20,14 @@ def get_conn():
     conn.row_factory = sqlite3.Row
     return conn
 
+def ensure_column(conn, table_name: str, column_name: str, column_type: str):
+    """ Adds a column if it does not exist. This supports small schema upgrades without requiring database deletion"""
+    cur = conn.cursor()
+    cur.execute(f"PRAGMA table_info({table_name})")
+    existing_cols = [row[1] for row in cur.fetchall()]
+    if column_name not in existing_cols:
+        cur.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+        conn.commit()
 
 def init_db():
     conn = get_conn()
@@ -29,6 +39,9 @@ def init_db():
         username TEXT NOT NULL UNIQUE
     )
     """)
+
+    #adding password_hach for authentication
+    ensure_column(conn, "users", "password_hash", "TEXT")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS user_skills (
@@ -66,6 +79,10 @@ def init_db():
     conn.commit()
     conn.close()
 
+
+# -----------------------------
+# Seed data
+# -----------------------------
 
 def seed_data():
     """
@@ -132,18 +149,42 @@ def seed_data():
     conn.commit()
     conn.close()
 
+# -----------------------------
+# Skill normalization
+# -----------------------------
+
+_SKILL_SYNONYMS = {
+    "js": "Javascript",
+    "py": "Python",
+    "servicenow": "Servicenow",
+
+}
 
 def normalize_skill(skill: str) -> str:
+    """Clean up user input to return consistently formatted version of a skill.
+        -Normalize spacing
+        -Normalize casing
+        -Apply a small synonym map
     """
-    Clean up user input and return consistently formatted version of a skill for storage and comparison
-    """
-    return " ".join(skill.strip().split()).title()
+    s = (skill or "").strip()
+    s = re.sub(r"\s+", " ", s)
+    if not s:
+        return ""
+    s = s.lower()
 
+    if s in _SKILL_SYNONYMS:
+        return _SKILL_SYNONYMS[s]
+    
+    return " ".join([part.capitalize() for part in s.split(" ")])
+
+# -----------------------------
+# Query helpers
+# -----------------------------
 
 def get_user_by_username(username: str):
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT id, username FROM users WHERE username = ?", (username,))
+    cur.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
     row = cur.fetchone()
     conn.close()
     return row
@@ -230,15 +271,22 @@ def health():
 def create_user():
     data = request.get_json(force=True)
     username = data.get("username", "").strip()
+    password = data.get("password") or ""
 
     if not username:
         return jsonify({"error": "username is required"}), 400
+    if not password:
+        return jsonify({"error": "password is required"}), 400
+    if len(password) <8:
+        return jsonify({"error": "password must be at least 8 characters"}), 400
+    
+    pw_hash = generate_password_hash(password)
 
     conn = get_conn()
     cur = conn.cursor()
 
     try:
-        cur.execute("INSERT INTO users(username) VALUES (?)", (username,))
+        cur.execute("INSERT INTO users(username, password_hash) VALUES (?, ?)", (username, pw_hash))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
@@ -253,13 +301,20 @@ def create_user():
 def login():
     data = request.get_json(force=True)
     username = data.get("username", "").strip()
+    password = data.get("password") or ""
 
-    if not username:
-        return jsonify({"error": "username is required"}), 400
+    if not username or not password:
+        return jsonify({"error": "username and password are required"}), 400
 
     row = get_user_by_username(username)
     if not row:
-        return jsonify({"error": "user not found"}), 404
+        return jsonify({"error": "invalid credentials"}), 401
+    
+    if not row["password_hash"]:
+        return jsonify({"error": "account has no password set"}), 401
+    
+    if not check_password_hash(row["password_hash"], password):
+        return jsonify({"error": "invaid credentials"}), 401
 
     return jsonify({"id": row["id"], "username": row["username"]})
 

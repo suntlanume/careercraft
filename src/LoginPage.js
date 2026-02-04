@@ -3,12 +3,13 @@ import { api } from "./api";
 
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
   const createProfile = async () => {
     setMessage("");
     try {
-      const res = await api.post("/users", { username });
+      const res = await api.post("/users", { username, password });
       onLogin(res.data); // {id, username}
     } catch (err) {
       const msg = err?.response?.data?.error || "Create failed";
@@ -19,7 +20,7 @@ export default function LoginPage({ onLogin }) {
   const login = async () => {
     setMessage("");
     try {
-      const res = await api.post("/login", { username });
+      const res = await api.post("/login", { username, password });
       onLogin(res.data); // {id, username}
     } catch (err) {
       const msg = err?.response?.data?.error || "Login failed";
@@ -38,6 +39,17 @@ export default function LoginPage({ onLogin }) {
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         placeholder="Enter username"
+        autoComplete="username"
+      />
+
+      <label>Password</label>
+      <input
+        type="password"
+        style={{ width: "100%", padding: 10, marginTop: 6, marginBottom: 12 }}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Enter password (8+ characters)"
+        autoComplete="current-password"
       />
 
       <div style={{ display: "flex", gap: 10 }}>
