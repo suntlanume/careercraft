@@ -26,7 +26,38 @@ The long-term goal of CareerCraft is to support thoughtful career decision-makin
 - Database: SQLite (local development)
 - Languages: JavaScript, Python
 
-This repository contains the React frontend for the CareerCraft application.
+---
+
+## Getting Started
+### 1. Start the Backend
+'''cd backend
+pip install flask flask-cors
+python app.py'''
+
+Note: install step can be skipped if flask already installed.
+
+The backend runs at http://localhost:5000
+
+### 2. Start the Frontend
+In a second terminal window or tab run:
+'''cd careercraft
+npm install
+npm start'''
+
+Note: install step can be skipped if npm already installed.
+
+The front end runs at http://localhost:3000 
+
+## How It Works
+1. Create a profile and log in.
+2. Add skills to your profile.
+3. Generate career recommendations.
+4. Review matched skills, missing skills, and suggested next steps.
+
+## Future Enhancements
+- Interactive graphical skill tree visualization
+- Adaptive recommendation weighting
+- External learning integration
 
 ---
 
