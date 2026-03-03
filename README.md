@@ -30,11 +30,11 @@ The long-term goal of CareerCraft is to support thoughtful career decision-makin
 
 ## Getting Started
 ### 1. Start the Backend
->cd backend
+>cd backend  
 
->pip install flask flask-cors
+>pip install flask flask-cors  
 
->python app.py
+>python app.py  
 
 Note: install step can be skipped if flask already installed.
 
@@ -42,11 +42,11 @@ The backend runs at http://localhost:5000
 
 ### 2. Start the Frontend
 In a second terminal window or tab run:
->cd careercraft
+>cd careercraft  
 
->npm install
+>npm install  
 
->npm start
+>npm start  
 
 Note: install step can be skipped if npm already installed.
 
